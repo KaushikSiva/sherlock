@@ -495,6 +495,104 @@ def analyze(session, change_id, metric, window_weeks):
     return out
 $$
 -- @@
+CREATE OR REPLACE PROCEDURE VOLTRA.CORE.FORECAST_METRIC(METRIC STRING, HORIZON_WEEKS INT DEFAULT 12, ACT_CHANGE_PCT FLOAT DEFAULT NULL, ACT_START_WEEKS INT DEFAULT 2)
+RETURNS VARIANT
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.12'
+PACKAGES = ('snowflake-snowpark-python')
+HANDLER = 'run'
+COMMENT = 'Forecast a weekly business metric with SNOWFLAKE.ML.FORECAST: do-nothing vs act scenario, totals and dollar value.'
+EXECUTE AS OWNER
+AS
+$$
+import re
+import uuid
+
+T = "VOLTRA.CORE."
+# metric -> (weekly count SQL template, value column for dollars, label)
+SERIES = {
+    "warranty_claims": ("SELECT DATE_TRUNC('week', CLAIM_DATE) W, COUNT(*) Y, AVG(COST_USD) U FROM {t}WARRANTY_CLAIMS WHERE 1=1{cond} GROUP BY 1", "PART", "warranty claims", "avg cost per claim (USD)"),
+    "tickets": ("SELECT DATE_TRUNC('week', TICKET_DATE) W, COUNT(*) Y, NULL U FROM {t}SERVICE_TICKETS WHERE 1=1{cond} GROUP BY 1", "CATEGORY", "support tickets", None),
+    "care_cancellations": ("SELECT DATE_TRUNC('week', CANCELLED_AT) W, COUNT(*) Y, AVG(MRR_USD) * 12 U FROM {t}SUBSCRIPTIONS WHERE CANCELLED_AT IS NOT NULL{cond} GROUP BY 1", None, "Voltra Care cancellations", "annual revenue lost per cancellation (USD)"),
+    "orders": ("SELECT DATE_TRUNC('week', ORDER_DATE) W, COUNT(*) Y, AVG(REVENUE_USD) U FROM {t}ORDERS WHERE 1=1{cond} GROUP BY 1", None, "orders", "avg revenue per order (USD)"),
+}
+
+
+def run(session, metric, horizon_weeks, act_change_pct, act_start_weeks):
+    metric = (metric or "").strip().lower()
+    base, _, sub = metric.partition(":")
+    if base not in SERIES:
+        return {"error": f"Unsupported metric '{metric}'. Use one of: warranty_claims[:part], tickets[:category], care_cancellations, orders."}
+    if sub and not re.fullmatch(r"[a-z_]+", sub):
+        return {"error": "Invalid filter; use a part (battery, brakes, motor, ...) or ticket category (brake_noise, ...)."}
+    sql, filt_col, label, unit_label = SERIES[base]
+    if sub and not filt_col:
+        return {"error": f"{base} has no sub-filter."}
+    cond = f" AND {filt_col} = '{sub}'" if sub else ""
+    horizon = max(2, min(int(horizon_weeks or 12), 26))
+    start = max(0, min(int(act_start_weeks if act_start_weeks is not None else 2), horizon - 1))
+
+    weekly = f"({sql.format(t=T, cond=cond)})"
+    rows = session.sql(
+        f"WITH w AS {weekly}, last AS (SELECT DATEADD('week', -1, MAX(W)) LW FROM w) "
+        f"SELECT w.W::TIMESTAMP_NTZ TS, w.Y::FLOAT Y, w.U FROM w, last WHERE w.W <= last.LW AND w.W >= '2025-01-06' ORDER BY 1"
+    ).collect()
+    if len(rows) < 20:
+        return {"error": f"Only {len(rows)} weeks of history for {metric}; need at least 20."}
+    units = [r["U"] for r in rows[-26:] if r["U"] is not None]
+    unit_value = round(sum(units) / len(units), 2) if units else None
+
+    tag = uuid.uuid4().hex[:10].upper()
+    tbl, model = f"{T}FC_IN_{tag}", f"{T}FC_MODEL_{tag}"
+    try:
+        session.sql(f"CREATE TRANSIENT TABLE {tbl} (TS TIMESTAMP_NTZ, Y FLOAT)").collect()
+        values = ",".join(f"('{r['TS']}', {float(r['Y'])})" for r in rows)
+        session.sql(f"INSERT INTO {tbl} VALUES {values}").collect()
+        session.sql(f"CREATE SNOWFLAKE.ML.FORECAST {model}(INPUT_DATA => TABLE({tbl}), TIMESTAMP_COLNAME => 'TS', TARGET_COLNAME => 'Y', CONFIG_OBJECT => {{'evaluate': FALSE, 'method': 'fast'}})").collect()
+        fc = session.sql(f"CALL {model}!FORECAST(FORECASTING_PERIODS => {horizon}, CONFIG_OBJECT => {{'prediction_interval': 0.9}})").collect()
+    finally:
+        session.sql(f"DROP SNOWFLAKE.ML.FORECAST IF EXISTS {model}").collect()
+        session.sql(f"DROP TABLE IF EXISTS {tbl}").collect()
+
+    series = [{"WEEK": str(r["TS"])[:10], "SCENARIO": "history", "VALUE": round(float(r["Y"]), 2), "LOWER": None, "UPPER": None} for r in rows[-26:]]
+    total_dn = total_act = 0.0
+    pct = act_change_pct
+    for i, r in enumerate(fc):
+        f = max(0.0, float(r["FORECAST"]))
+        lo, hi = max(0.0, float(r["LOWER_BOUND"])), max(0.0, float(r["UPPER_BOUND"]))
+        week = str(r["TS"])[:10]
+        series.append({"WEEK": week, "SCENARIO": "do nothing", "VALUE": round(f, 2), "LOWER": round(lo, 2), "UPPER": round(hi, 2)})
+        total_dn += f
+        if pct is not None:
+            ramp = 0.0 if i < start else min(1.0, (i - start + 1) / 2.0)
+            a = max(0.0, f * (1 + ramp * float(pct) / 100.0))
+            series.append({"WEEK": week, "SCENARIO": "act", "VALUE": round(a, 2), "LOWER": None, "UPPER": None})
+            total_act += a
+    # Join the history line to each forecast line so charts draw continuously.
+    last = series[len(rows[-26:]) - 1]
+    series.append({"WEEK": last["WEEK"], "SCENARIO": "do nothing", "VALUE": last["VALUE"], "LOWER": last["VALUE"], "UPPER": last["VALUE"]})
+    if pct is not None:
+        series.append({"WEEK": last["WEEK"], "SCENARIO": "act", "VALUE": last["VALUE"], "LOWER": None, "UPPER": None})
+    series.sort(key=lambda s: (s["WEEK"], s["SCENARIO"]))
+
+    out = {
+        "metric": metric, "label": label + (f" ({sub})" if sub else ""), "unit": "per week",
+        "method": "SNOWFLAKE.ML.FORECAST on weekly totals since Jan 2025 (90% prediction interval)",
+        "horizon_weeks": horizon, "history_weeks_used": len(rows),
+        "last_actual_week": series and str(rows[-1]["TS"])[:10],
+        "totals": {"do_nothing": round(total_dn, 1)},
+        "series": series,
+    }
+    if pct is not None:
+        diff = total_act - total_dn
+        out["scenario"] = {"act_change_pct": pct, "act_starts_after_weeks": start, "ramp_weeks": 2,
+                           "note": "act = forecast scaled by the measured effect from the start week; use the effect from release_impact"}
+        out["totals"].update({"act": round(total_act, 1), "difference": round(diff, 1)})
+        if unit_value is not None:
+            out["totals"].update({"value_per_unit_usd": unit_value, "unit_value_basis": unit_label, "difference_usd": round(diff * unit_value, 0)})
+    return out
+$$
+-- @@
 CREATE OR REPLACE MCP SERVER VOLTRA.CORE.VOLTRA_MCP
   FROM SPECIFICATION $$
   tools:
@@ -542,4 +640,33 @@ CREATE OR REPLACE MCP SERVER VOLTRA.CORE.VOLTRA_MCP
               type: "number"
               description: "Weeks in the pre and post windows (default 6). Use ~12-16 for lagged outcomes such as warranty claims, ~2 for incidents."
           required: ["change_id", "metric"]
+    - title: "Forecast (Snowflake ML)"
+      name: "forecast_metric"
+      type: "GENERIC"
+      identifier: "VOLTRA.CORE.FORECAST_METRIC"
+      description: "Forecast a weekly business metric with SNOWFLAKE.ML.FORECAST and compare two futures: 'do nothing' (with a 90% prediction interval) and 'act' (the forecast scaled by act_change_pct from act_start_weeks on, e.g. the effect of fixing a bad part or rolling out a winning feature, taken from release_impact). Returns weekly SERIES rows (WEEK, SCENARIO history/do nothing/act, VALUE, LOWER, UPPER) that become a chartable dataset, totals for each scenario, the difference and its dollar value (average claim cost, order revenue or annual Care revenue)."
+      annotations:
+        readOnlyHint: true
+        destructiveHint: false
+        idempotentHint: true
+        openWorldHint: false
+      config:
+        type: "procedure"
+        warehouse: "DEFAULT_WH"
+        input_schema:
+          type: "object"
+          properties:
+            metric:
+              type: "string"
+              description: "warranty_claims[:part] (part: battery, brakes, motor, controller, display, frame), tickets[:category] (e.g. brake_noise, app_unlock), care_cancellations, or orders."
+            horizon_weeks:
+              type: "number"
+              description: "Weeks to forecast (2-26, default 12)."
+            act_change_pct:
+              type: "number"
+              description: "Percent change applied in the 'act' scenario, e.g. -50 if fixing the cause halves claims. Omit for a do-nothing forecast only."
+            act_start_weeks:
+              type: "number"
+              description: "Weeks from now until the action takes effect (default 2)."
+          required: ["metric"]
   $$

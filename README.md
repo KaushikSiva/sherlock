@@ -28,12 +28,13 @@ Every metric change has a dozen suspects. On May 4, Voltra shipped a new brake c
 
 A dashboard tells you **what** changed. It can't tell you **why**, because the evidence lives in 13 different systems: device telemetry, OTA logs, feature flags, GitHub, manufacturing, warranty, Zendesk, app reviews, Shopify, Stripe, Amplitude and more.
 
-Sherlock does the investigation a senior analyst would do, in about 90 seconds:
+Sherlock does the investigation a senior analyst would do, in about two minutes:
 
 1. **Quantifies** the change and when it started.
 2. **Lists every suspect** that shipped in that window: software releases, hardware revisions, incidents, campaigns and seasonality.
 3. **Tests each one against a control cohort.** Staged rollouts, flag holdouts, build revisions and incident-affected users each become a natural experiment, and a diff-in-diff runs **inside Snowflake**.
 4. **Files a report.** It names the cause with an effect size and a 95% CI, crosses out the decoys with the evidence that clears them, and shows *where* in the product it happened.
+5. **Forecasts what happens next.** Snowflake ML Forecast projects the metric under two futures, *do nothing* and *act*, and puts a number on the gap.
 
 <img src="docs/images/report.png" alt="A filed Sherlock report: verdict board with the CAUSE stamp on caliper Rev C, firmware 4.3 marked no effect, weather and bike age ruled out" width="100%" />
 
@@ -45,6 +46,7 @@ Sherlock does the investigation a senior analyst would do, in about 90 seconds:
 | **Everything runs inside Snowflake** | Claude Opus 5.5 is served by Snowflake Cortex through its Anthropic-compatible Messages API. Tools come from a **Snowflake-managed MCP server**. One Snowflake login covers the model, the tools and the data, and no data leaves the account. |
 | **Generative UI that streams** | Claude writes the report in **OpenUI Lang**, and the dashboard builds itself token by token: verdict board, KPIs, charts, quotes and caveats. No pre-built dashboards. |
 | **Shows where it happened** | The `Mechanism` card is a live isometric **Anatomy** figure of the product on a dyno bench. It lights the subsystem that caused the change and animates the metric from before to after, using the query results. |
+| **Forecasts the value of acting** | `FORECAST_METRIC` trains Snowflake ML Forecast on the weekly series and compares *do nothing* (with a 90% band) against *act* (the measured effect applied). The gap is reported in claims, tickets, cancellations or dollars. |
 | **Evals with a planted answer key** | The demo company's data has six **planted** causes and same-week decoys, and `evals/run_evals.py` scores whether Sherlock finds them. |
 
 <table>
@@ -70,7 +72,18 @@ Browser (React 19 · OpenUI · Motion · Anatomy) ──SSE── FastAPI agent 
         voltra_analyst   Cortex Analyst on the VOLTRA_360 semantic view (official metric definitions)
         voltra_search    Cortex Search over tickets, reviews, release notes, postmortems, change orders
         release_impact   diff-in-diff stored procedure → effect, 95% CI, n, concurrent events
+        forecast_metric  Snowflake ML Forecast → do-nothing vs act scenarios, totals, $ value
 ```
+
+**How it grounds on Snowflake.** Everything runs inside the customer's Snowflake account:
+- Claude Opus 5.5 is served by **Snowflake Cortex** through its Anthropic-compatible Messages API, authenticated with the same session that queries the data. Nothing leaves the account.
+- Every tool comes from a **Snowflake-managed MCP server**:
+  - **SQL** over 18 tables.
+  - **Cortex Analyst**, on a semantic view of official metric definitions.
+  - **Cortex Search**, over tickets, reviews, release notes and postmortems.
+  - **A Snowpark Python stored procedure** for the causal comparison.
+  - **Snowflake ML Forecast** for projections.
+- In production, data would land through Snowpipe Streaming (telemetry), Openflow or connectors (SaaS) and the Marketplace (weather).
 
 | Layer | What it does |
 |---|---|
@@ -78,6 +91,7 @@ Browser (React 19 · OpenUI · Motion · Anatomy) ──SSE── FastAPI agent 
 | **Cortex Analyst** | Makes sure metrics match the company's official definitions. |
 | **Cortex Search** | Finds the human evidence: what customers, engineers and postmortems actually say. |
 | **Release Impact** | Proves cause and effect by comparing treated and control cohorts over the same weeks. |
+| **Forecast** | Projects the outcome forward (*do nothing* vs *act*) and puts a number on fixing the problem or shipping the win. |
 
 ### The demo company: Voltra Mobility
 
@@ -92,6 +106,22 @@ Voltra is a **fictional connected e-bike company** with software, mechanical har
 | Zendesk · App Store / Google Play | `SERVICE_TICKETS`, `APP_REVIEWS` |
 | Shopify · Stripe · Amplitude · ad platforms | `ORDERS`, `CUSTOMERS`, `SUBSCRIPTIONS`, `WEB_FUNNEL_DAILY`, `MARKETING_SPEND` |
 | Snowflake Marketplace | `WEATHER_WEEKLY` |
+
+## Forecasting: from "what happened" to "what's it worth"
+
+Finding the cause is half the answer. The next question is always "what if we do nothing?" After Sherlock measures a cause's effect, it calls `forecast_metric`:
+
+- **Do nothing:** Snowflake ML Forecast on the weekly series, with a 90% prediction interval.
+- **Act:** the same forecast with the measured effect applied from the week the fix lands, with a two-week ramp.
+- **Value of acting:** the gap between the two, converted to dollars using the real average claim cost, order revenue or Care subscription revenue.
+
+Examples from real runs:
+- *Brake case:* fixing caliper Rev C saves about **103 brake-noise tickets** over 12 weeks (480 → 377).
+- *Care case:* about **355 cancellations** forecast over the next 12 weeks if nothing changes, with the 90% band showing what another outage could add.
+
+## The value case
+
+Sherlock cuts time to root cause from 2–5 analyst-days (manual SQL, no control groups) to minutes, prevents wrong-cause decisions, and catches costly defects weeks earlier. It is funded by data, engineering, quality and finance leaders, and is worth roughly $1–3M a year for a mid-size company.
 
 ## Sample cases
 
@@ -118,7 +148,7 @@ cp .env.example .env                                        # SNOWFLAKE_ACCOUNT 
 # 1. Build and load the demo company (about 1 minute)
 .venv/bin/python data/voltra/generate.py
 .venv/bin/python data/voltra/load.py
-.venv/bin/python sql/run_sql.py sql/voltra_setup.sql        # semantic view, search, RELEASE_IMPACT, MCP server
+.venv/bin/python sql/run_sql.py sql/voltra_setup.sql        # semantic view, search, RELEASE_IMPACT, FORECAST_METRIC, MCP server
 
 # 2. Build the UI
 cd web && OPENUI_TELEMETRY_DISABLED=1 npm install --ignore-scripts && npm run build && cd ..
@@ -143,18 +173,19 @@ Each run spends Cortex credits: about 6 cases at 1–2 minutes each, plus gradin
 agent.py                  agent loop: Claude via Cortex + Snowflake MCP client + streaming events
 app.py                    FastAPI: /api/ask (SSE), /api/config, /api/stats
 data/voltra/              synthetic company generator + loader (fixed seed, planted effects)
-sql/                      semantic view, Cortex Search, RELEASE_IMPACT procedure, MCP servers
+sql/                      semantic view, Cortex Search, RELEASE_IMPACT + FORECAST_METRIC procedures, MCP servers
 evals/                    planted answer key + LLM-graded eval runner
 web/src/openui/           OpenUI component library (Dashboard, Kpi, Chart, Verdicts, Mechanism, …)
 web/src/iso/voltra/       Anatomy figure: dyno bench model, geometry, live component
 web/src/AgentFlow.tsx     live agent schematic
-demo/                     intro slides, recorder, editor and face-cam compositor for the demo video
+demo/                     intro slides, recorder, editors (60 s and voice-timed), face steadying + retouch, face-cam compositor
 ```
 
 ## Built with
 
 - **[Claude Opus 5.5](https://www.anthropic.com/claude)** on **[Snowflake Cortex](https://www.snowflake.com/en/product/features/cortex/)**: tool use with adaptive thinking.
-- **[Snowflake-managed MCP server](https://docs.snowflake.com/)**: Cortex Analyst, Cortex Search, SQL and a custom stored-procedure tool.
+- **[Snowflake-managed MCP server](https://docs.snowflake.com/)**: Cortex Analyst, Cortex Search, SQL and two custom stored-procedure tools.
+- **Snowflake ML Forecast** (`SNOWFLAKE.ML.FORECAST`): do-nothing vs act projections.
 - **[OpenUI](https://github.com/thesysdev/openui)**: streaming generative UI (OpenUI Lang).
 - **[Anatomy](https://github.com/wheresryan22/anatomy)** (MIT): isometric figure kit. The `Mechanism` bench was built with its workflow and passes its line-end checks.
 - **Vega-Lite**, **Motion**, **React 19**, **FastAPI**.

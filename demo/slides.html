@@ -49,6 +49,14 @@
   .suspect .v { font:400 44px/1.05 var(--serif); margin-top:10px; }
   .suspect .d { font:400 20px var(--mono); color:var(--muted); margin-top:12px; }
   .q { position:absolute; right:26px; top:22px; width:44px; height:44px; border:2px solid var(--ink); display:grid; place-items:center; font:600 26px var(--mono); }
+  .tripled { position:absolute; right:140px; top:110px; width:470px; padding:20px 24px 18px; background:var(--sheet); border:1.5px solid var(--ink); box-shadow:8px 8px 0 var(--signal); }
+  .tripled .tk { font:600 15px var(--mono); letter-spacing:.14em; color:var(--muted); }
+  .tripled .tv { font:400 64px/1 var(--serif); margin:6px 0 6px; }
+  .tripled .tv span { color:var(--signal); }
+  .tripled svg { width:100%; height:110px; overflow:visible; }
+  .tripled path { fill:none; stroke:var(--signal); stroke-width:4; stroke-linejoin:round; }
+  .tripled line { stroke:var(--ink); stroke-width:1.5; stroke-dasharray:4 5; }
+  .tripled .tx { font:500 14px var(--mono); letter-spacing:.12em; color:var(--sig2); margin-top:6px; }
   .verdict-line { margin-top:40px; font:400 52px/1.12 var(--serif); }
   .verdict-line em { color:var(--signal); }
   .systems { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; max-width:1640px; }
@@ -70,6 +78,8 @@
   .wire { fill:none; stroke:var(--ink); stroke-width:2.5; }
   .wire.hot { stroke:var(--signal); stroke-width:3.5; }
   .packet { fill:var(--signal); }
+  .on .box.tool rect { animation:flash 1.4s var(--e) both; }
+  @keyframes flash { 0% { fill:#ffd9c9; stroke:var(--signal); } 100% { fill:var(--sheet); } }
   .stage { opacity:0; transform:translateY(24px); }
   .on .stage { animation:rise .8s var(--e) forwards; }
   .tick { font:500 17px var(--mono); fill:var(--sig2); letter-spacing:.12em; }
@@ -97,14 +107,20 @@
 <section class="scene why" id="s2">
   <div class="eyebrow rise" style="animation-delay:.1s"><span class="dot"></span>The problem</div>
   <h2><span class="mask"><span style="animation-delay:.2s">Every metric change</span></span> <span class="mask"><span style="animation-delay:.32s">has a dozen <em>suspects.</em></span></span></h2>
-  <div class="suspects">
-    <div class="suspect rise" style="animation-delay:1s"><span class="q">?</span><div class="k">HARDWARE</div><div class="v">Brake caliper Rev C</div><div class="d">May 04 · supplier change</div></div>
-    <div class="suspect rise" style="animation-delay:1.2s"><span class="q">?</span><div class="k">FIRMWARE</div><div class="v">FW 4.3 regen tuning</div><div class="d">May 04 · staged OTA</div></div>
-    <div class="suspect rise" style="animation-delay:1.4s"><span class="q">?</span><div class="k">WEATHER</div><div class="v">Spring rain</div><div class="d">May · rainy regions</div></div>
-    <div class="suspect rise" style="animation-delay:1.6s"><span class="q">?</span><div class="k">SOFTWARE</div><div class="v">App 5.1 · Backend</div><div class="d">same window</div></div>
+  <div class="tripled rise" data-cue="tripled" style="animation-delay:.6s">
+    <div class="tk">BRAKE-NOISE TICKETS / MONTH</div>
+    <div class="tv">47 <span>→</span> 132</div>
+    <svg viewBox="0 0 420 120"><path class="draw" data-cue="tripled-line" pathLength="1" style="animation-delay:.9s" d="M0 100 L60 96 L120 98 L180 92 L230 88 L250 60 L290 40 L340 30 L380 22 L420 14"/><line x1="236" y1="0" x2="236" y2="120" /></svg>
+    <div class="tx">MAY 04 · EVERYTHING SHIPPED AT ONCE</div>
   </div>
-  <p class="verdict-line rise" style="animation-delay:3.2s">Dashboards show <em>what</em> changed. Nobody can say <em>why</em>. The evidence is spread across 13 systems.</p>
-  <div class="systems">
+  <div class="suspects">
+    <div class="suspect rise" data-cue="sus-hw" style="animation-delay:1s"><span class="q">?</span><div class="k">HARDWARE</div><div class="v">Brake caliper Rev C</div><div class="d">May 04 · supplier change</div></div>
+    <div class="suspect rise" data-cue="sus-fw" style="animation-delay:1.2s"><span class="q">?</span><div class="k">FIRMWARE</div><div class="v">FW 4.3 regen tuning</div><div class="d">May 04 · staged OTA</div></div>
+    <div class="suspect rise" data-cue="sus-rain" style="animation-delay:1.4s"><span class="q">?</span><div class="k">WEATHER</div><div class="v">Spring rain</div><div class="d">May · rainy regions</div></div>
+    <div class="suspect rise" data-cue="sus-sw" style="animation-delay:1.6s"><span class="q">?</span><div class="k">SOFTWARE</div><div class="v">App 5.1 · Backend</div><div class="d">same window</div></div>
+  </div>
+  <p class="verdict-line rise" data-cue="verdict" style="animation-delay:3.2s">Dashboards show <em>what</em> changed. Nobody can say <em>why</em>. The evidence is spread across 13 systems.</p>
+  <div class="systems" data-cue-stagger="systems">
     <span class="sys" style="animation-delay:5.0s">POSTGRES</span><span class="sys" style="animation-delay:5.1s">KAFKA · IoT</span><span class="sys" style="animation-delay:5.2s">OTA FIRMWARE</span><span class="sys" style="animation-delay:5.3s">LAUNCHDARKLY</span><span class="sys" style="animation-delay:5.4s">GITHUB</span><span class="sys" style="animation-delay:5.5s">PAGERDUTY</span><span class="sys" style="animation-delay:5.6s">MES / PLM</span><span class="sys" style="animation-delay:5.7s">WARRANTY</span><span class="sys" style="animation-delay:5.8s">ZENDESK</span><span class="sys" style="animation-delay:5.9s">APP STORE</span><span class="sys" style="animation-delay:6.0s">SHOPIFY</span><span class="sys" style="animation-delay:6.1s">STRIPE</span><span class="sys" style="animation-delay:6.2s">AMPLITUDE</span>
   </div>
   <div class="bar rise" style="animation-delay:1s"><span>CASE FILE · VOLTRA MOBILITY</span><span>FIG. 02 · WHY</span></div>
@@ -116,33 +132,33 @@
   <h2><span class="mask"><span style="animation-delay:.2s">Everything runs <em>inside Snowflake.</em></span></span></h2>
   <svg class="diagram" viewBox="0 0 1640 600">
     <!-- packets ride the wires behind the boxes -->
-    <g class="stage" style="animation-delay:3.4s">
+    <g class="stage" data-cue="a-packets" style="animation-delay:3.4s">
       <rect class="packet" x="-7" y="-7" width="14" height="14"><animateMotion dur="2.4s" repeatCount="indefinite" begin="3.4s" path="M280 300 H1410"/></rect>
       <rect class="packet" x="-7" y="-7" width="14" height="14"><animateMotion dur="2.4s" repeatCount="indefinite" begin="4.2s" path="M280 300 H1410"/></rect>
       <rect class="packet" x="-7" y="-7" width="14" height="14"><animateMotion dur="2.4s" repeatCount="indefinite" begin="5s" path="M280 300 H1410"/></rect>
     </g>
-    <g class="stage" style="animation-delay:.7s">
+    <g class="stage" data-cue="a-src" style="animation-delay:.7s">
       <g class="box"><rect x="0" y="40" width="280" height="520"/><text class="t" x="22" y="88">13 sources</text>
         <text class="s" x="22" y="130">Postgres · CDC</text><text class="s" x="22" y="166">Kafka · telemetry</text><text class="s" x="22" y="202">OTA · feature flags</text><text class="s" x="22" y="238">GitHub · PagerDuty</text><text class="s" x="22" y="274">MES · warranty</text><text class="s" x="22" y="310">Zendesk · reviews</text><text class="s" x="22" y="346">Shopify · Stripe</text><text class="s" x="22" y="382">Amplitude · ads</text><text class="s" x="22" y="418">Weather (Marketplace)</text><text class="tick" x="22" y="520">OPENFLOW · SNOWPIPE</text></g>
     </g>
-    <path class="wire draw" pathLength="1" d="M280 300 H330" style="animation-delay:1.2s"/>
-    <g class="stage" style="animation-delay:1.3s">
+    <path class="wire draw" data-cue="a-w1" pathLength="1" d="M280 300 H330" style="animation-delay:1.2s"/>
+    <g class="stage" data-cue="a-sf" style="animation-delay:1.3s">
       <g class="box"><rect x="330" y="150" width="340" height="300"/><text class="t" x="352" y="200">Snowflake</text><text class="s" x="352" y="240">VOLTRA.CORE · 18 tables</text><text class="s" x="352" y="276">550k telemetry rows</text><text class="s" x="352" y="312">semantic view</text><text class="s" x="352" y="348">text search index</text><text class="s" x="352" y="384">RELEASE_IMPACT proc</text></g>
     </g>
-    <path class="wire draw" pathLength="1" d="M670 300 H720" style="animation-delay:1.8s"/>
-    <g class="stage" style="animation-delay:1.9s">
+    <path class="wire draw" data-cue="a-w2" pathLength="1" d="M670 300 H720" style="animation-delay:1.8s"/>
+    <g class="stage" data-cue="a-mcp" style="animation-delay:1.9s">
       <g class="box hot"><rect x="720" y="110" width="330" height="380"/><text class="t" x="742" y="160">Managed MCP</text><text class="s" x="742" y="196">one governed server</text></g>
-      <g class="box"><rect x="742" y="222" width="286" height="54"/><text class="s" x="758" y="256" style="fill:#16150f">sql_exec</text></g>
-      <g class="box"><rect x="742" y="286" width="286" height="54"/><text class="s" x="758" y="320" style="fill:#16150f">cortex analyst</text></g>
-      <g class="box"><rect x="742" y="350" width="286" height="54"/><text class="s" x="758" y="384" style="fill:#16150f">cortex search</text></g>
-      <g class="box hot"><rect x="742" y="414" width="286" height="54"/><text class="s" x="758" y="448" style="fill:#c73a0d">release_impact · DiD</text></g>
     </g>
-    <path class="wire hot draw" pathLength="1" d="M1050 300 H1100" style="animation-delay:2.4s"/>
-    <g class="stage" style="animation-delay:2.5s">
+    <g class="stage" data-cue="a-t1" style="animation-delay:2.0s"><g class="box tool"><rect x="742" y="222" width="286" height="54"/><text class="s" x="758" y="256" style="fill:#16150f">sql_exec</text></g></g>
+    <g class="stage" data-cue="a-t2" style="animation-delay:2.1s"><g class="box tool"><rect x="742" y="286" width="286" height="54"/><text class="s" x="758" y="320" style="fill:#16150f">cortex analyst</text></g></g>
+    <g class="stage" data-cue="a-t3" style="animation-delay:2.2s"><g class="box tool"><rect x="742" y="350" width="286" height="54"/><text class="s" x="758" y="384" style="fill:#16150f">cortex search</text></g></g>
+    <g class="stage" data-cue="a-t4" style="animation-delay:2.3s"><g class="box hot tool"><rect x="742" y="414" width="286" height="54"/><text class="s" x="758" y="448" style="fill:#c73a0d">release_impact · DiD</text></g></g>
+    <path class="wire hot draw" data-cue="a-w3" pathLength="1" d="M1050 300 H1100" style="animation-delay:2.4s"/>
+    <g class="stage" data-cue="a-claude" style="animation-delay:2.5s">
       <g class="box dark"><rect x="1100" y="190" width="270" height="220"/><text class="t" x="1122" y="244">Claude</text><text class="t" x="1122" y="282">Opus 5.5</text><text class="s" x="1122" y="328">via Snowflake Cortex</text><text class="s" x="1122" y="362">tools · thinking</text></g>
     </g>
-    <path class="wire draw" pathLength="1" d="M1370 300 H1410" style="animation-delay:3s"/>
-    <g class="stage" style="animation-delay:3.1s">
+    <path class="wire draw" data-cue="a-w4" pathLength="1" d="M1370 300 H1410" style="animation-delay:3s"/>
+    <g class="stage" data-cue="a-report" style="animation-delay:3.1s">
       <g class="box"><rect x="1410" y="120" width="230" height="360"/><text class="t" x="1430" y="170">Report</text><text class="s" x="1430" y="206">OpenUI stream</text><text class="s" x="1430" y="242">verdicts + CIs</text><text class="s" x="1430" y="278">Anatomy figure</text><text class="s" x="1430" y="314">charts, quotes</text><text class="tick" x="1430" y="446">LIVE</text></g>
     </g>
   </svg>
@@ -151,13 +167,27 @@
 
 <script>
   // Timeline driven by the page clock so a recorder gets identical timing every run.
-  const scenes = [["s1", 0], ["s2", 7000], ["s3", 17000]];
+  // Default timing (hero 0–7s · why 7–17s · architecture 17–27s). ?voice re-times every cue to the narration in
+  // 2Claude.mov (word timestamps from Whisper; scene-relative seconds).
+  const VOICE = location.search.includes("voice");
+  const scenes = VOICE ? [["s1", 0], ["s2", 6830], ["s3", 24950]] : [["s1", 0], ["s2", 7000], ["s3", 17000]];
+  const CUES = {
+    tripled: 2.0, "tripled-line": 2.4, "sus-hw": 7.4, "sus-fw": 9.1, "sus-rain": 11.4, "sus-sw": 12.5, verdict: 14.3, systems: 15.5,
+    "a-src": 0.5, "a-w1": 1.1, "a-sf": 1.3, "a-claude": 3.1, "a-w2": 5.8, "a-mcp": 6.1, "a-w3": 6.4,
+    "a-t1": 7.4, "a-t2": 8.2, "a-t3": 9.7, "a-t4": 12.5, "a-w4": 14.6, "a-report": 14.9, "a-packets": 15.0,
+  };
+  if (VOICE) {
+    document.querySelectorAll("[data-cue]").forEach((el) => { const s = CUES[el.dataset.cue]; if (s !== undefined) el.style.animationDelay = s + "s"; });
+    document.querySelectorAll("[data-cue-stagger]").forEach((box) => [...box.children].forEach((el, i) => (el.style.animationDelay = CUES[box.dataset.cueStagger] + i * 0.08 + "s")));
+  }
   function start() {
     scenes.forEach(([id, at], i) => setTimeout(() => {
       if (i) { const prev = document.getElementById(scenes[i - 1][0]); prev.classList.remove("on"); prev.classList.add("off"); }
       document.getElementById(id).classList.add("on");
     }, at));
   }
+  // A tool row flashes when it appears: its rect takes the row's delay.
+  document.querySelectorAll(".box.tool rect").forEach((r) => (r.style.animationDelay = r.closest("[data-cue]").style.animationDelay));
   // Wait for fonts so the first frame is final typography; the recorder calls window.go().
   window.go = () => document.fonts.ready.then(start);
   if (!location.search.includes("manual")) window.go();

@@ -72,17 +72,17 @@ def browser(p):
     return b, b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
 
 
-def intro():
+def intro(voice=False):
     with sync_playwright() as p:
         b, page = browser(p)
-        page.goto((ROOT / "slides.html").as_uri() + "?manual")
+        page.goto((ROOT / "slides.html").as_uri() + "?manual" + ("&voice" if voice else ""))
         page.evaluate("document.fonts.ready")
         page.wait_for_timeout(800)
         cast = Screencast(page, "intro")
         cast.start()
         page.evaluate("window.go()")
-        page.wait_for_timeout(27_200)
-        cast.stop(BUILD / "intro.mp4")
+        page.wait_for_timeout(41_500 if voice else 27_200)
+        cast.stop(BUILD / ("intro_voice.mp4" if voice else "intro.mp4"))
         b.close()
 
 
@@ -130,5 +130,7 @@ if __name__ == "__main__":
     BUILD.mkdir(parents=True, exist_ok=True)
     if sys.argv[1] == "intro":
         intro()
+    elif sys.argv[1] == "intro-voice":
+        intro(voice=True)
     else:
         app(sys.argv[2])

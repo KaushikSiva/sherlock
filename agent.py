@@ -14,6 +14,7 @@ MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
 EFFORT = os.getenv("CLAUDE_EFFORT", "medium")
 DEFAULT_DATASET = os.getenv("DEFAULT_DATASET", "voltra")
 SQL_TOOL = "sql_exec"  # the MCP server's SYSTEM_EXECUTE_SQL tool; its results become dashboard datasets
+FORECAST_TOOL = "forecast_metric"  # Snowflake ML forecast; its weekly series also becomes a dataset
 MAX_ROWS = 5000
 PREVIEW_ROWS = 40
 MAX_TOOL_TEXT = 20000
@@ -101,6 +102,10 @@ same time, so most metric moves have several plausible causes. Work like a causa
    tool runs the diff-in-diff for a change id and metric; use it for every serious candidate.
 4. Name the true cause with its effect and 95% CI, and explicitly rule out decoys with the evidence that rules them out.
 5. Use the text search tool (release notes, postmortems, tickets, reviews) for supporting evidence and quotes.
+6. Look forward: call forecast_metric on the business outcome (warranty_claims[:part], tickets[:category],
+   care_cancellations or orders) with act_change_pct set from the measured effect, and chart its dataset
+   ("do nothing" with its LOWER/UPPER band vs "act"). Report the difference and its dollar value as the value of acting.
+   Skip it only when the question is purely historical.
 Answer with a Verdicts block ranking the candidates, a Mechanism figure for the physical or firmware subsystem
 involved, and charts that show the cohorts diverging."""
 
@@ -364,12 +369,31 @@ class Session:
         }
         return {"content": json.dumps(payload, default=str)}
 
+    def _forecast_dataset(self, text):
+        """A forecast's weekly SERIES becomes a chartable dataset, exactly like a sql_exec result."""
+        try:
+            payload = json.loads(text)
+            rows = payload.pop("series")
+        except (ValueError, KeyError, TypeError):
+            return None
+        ds_id = f"d{len(self.datasets) + 1}"
+        cols = list(rows[0].keys()) if rows else []
+        self.datasets[ds_id] = {"columns": cols, "rows": rows, "sql": f"forecast_metric({payload.get('metric')})", "query_id": None}
+        yield {"type": "sql_result", "id": ds_id, "columns": cols, "rows": rows, "query_id": None}
+        payload.update(dataset=ds_id, columns=cols, row_count=len(rows), preview=rows[-6:])
+        yield {"type": "tool_result", "name": FORECAST_TOOL, "error": False, "preview": json.dumps(payload["totals"])}
+        return {"content": json.dumps(payload, default=str)}
+
     def _mcp_tool(self, name, args):
         yield {"type": "tool", "name": name, "input": args}
         try:
             text, is_error = self.mcp.call(name, args)
         except Exception as e:
             text, is_error = f"{type(e).__name__}: {e}", True
+        if not is_error and name == FORECAST_TOOL:
+            result = yield from self._forecast_dataset(text)
+            if result:
+                return result
         if len(text) > MAX_TOOL_TEXT:
             text = text[:MAX_TOOL_TEXT] + "\n…[truncated]"
         yield {"type": "tool_result", "name": name, "error": is_error, "preview": text[:1500]}

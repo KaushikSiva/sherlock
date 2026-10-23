@@ -196,7 +196,7 @@ function vegaTheme() {
     bar: { cornerRadiusEnd: 0 },
     line: { strokeWidth: 2, interpolate: "monotone" },
     point: { filled: true, size: 42 },
-    area: { opacity: 0.8 },
+    area: { opacity: 0.8, color: "#b5b2a7" },
     rule: { color: "#16150f" },
   };
 }
@@ -226,10 +226,16 @@ function animateMarks(root: HTMLElement) {
     el.style.animationDelay = `${Math.min(i * 22, 900)}ms`;
   });
   root.querySelectorAll<SVGPathElement>(".mark-line path").forEach((el, i) => {
-    const len = el.getTotalLength?.() || 2000;
+    // Measured lengths can be stale if Vega re-fits the chart, so the dash pattern is dropped once the line has drawn.
+    const len = (el.getTotalLength?.() || 2000) * 1.2;
     el.style.strokeDasharray = `${len}`;
     el.style.strokeDashoffset = `${len}`;
     el.style.animationDelay = `${i * 120}ms`;
+    el.addEventListener("animationend", () => {
+      el.style.strokeDasharray = "";
+      el.style.strokeDashoffset = "";
+      el.style.animation = "none";
+    }, { once: true });
   });
   root.classList.add("drawn");
 }

@@ -1,6 +1,6 @@
 """Put the presenter's face-cam in a round bubble over the main demo and use their voice as the soundtrack.
 
-    .venv/bin/python demo/compose.py path/to/presenter.mov [--offset 0.0] [--corner br|bl] [--size 380]
+    .venv/bin/python demo/compose.py path/to/presenter.mov [--offset 0.0] [--corner br|bl] [--size 320] [--main main.mp4] [--duration 60] [--out out.mp4]
 
 --offset   seconds to skip at the start of the presenter clip (e.g. the beat before you start talking)
 Output:    demo/build/sherlock_demo_final.mp4  (60 s, 1080p30, H.264 + AAC, loudness-normalised)
@@ -20,6 +20,9 @@ def main():
     ap.add_argument("--offset", type=float, default=0.0)
     ap.add_argument("--corner", choices=["br", "bl"], default="br")
     ap.add_argument("--size", type=int, default=320)
+    ap.add_argument("--main", default=str(MAIN))
+    ap.add_argument("--duration", type=float, default=60.0)
+    ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
 
     d = a.size  # bubble diameter
@@ -44,12 +47,12 @@ def main():
         ]
     )
     subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(MAIN), "-i", a.presenter, "-filter_complex", graph,
-         "-map", "[v]", "-map", "[a]", "-t", "60", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
-         "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(OUT)],
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", a.main, "-i", a.presenter, "-filter_complex", graph,
+         "-map", "[v]", "-map", "[a]", "-t", str(a.duration), "-c:v", "libx264", "-preset", "slow", "-crf", "17",
+         "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", a.out],
         check=True,
     )
-    print(f"wrote {OUT}")
+    print(f"wrote {a.out}")
 
 
 if __name__ == "__main__":

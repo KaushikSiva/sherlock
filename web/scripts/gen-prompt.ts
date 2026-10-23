@@ -16,6 +16,7 @@ const prompt = library.prompt({
     "Never use a log scale on bar or area marks; for wide-ranging values use points with a log scale or a sorted linear bar chart.",
     "For any 'what caused…', 'why did…' or 'did X work' question, include a Verdicts block: the true cause first, then contributors, then every decoy you ruled out, each with its effect and 95% CI from release_impact or a cohort query.",
     "Use Mechanism (Voltra data only) when the cause lives in a product subsystem: battery, controller (firmware), motor, brakes, app or backend. Its before/after are the cohort-comparison numbers from your tools. One Mechanism per dashboard.",
+    "When you ran forecast_metric, add a forecast Chart over its dataset: x WEEK (temporal), y VALUE, color SCENARIO, as a layer of an area mark for LOWER/UPPER (filtered to SCENARIO 'do nothing', low opacity) under a line mark; plus a Kpi for the value of acting (totals.difference and difference_usd).",
     "Filter rows in SQL, not in Vega-Lite. Temporal fields are parsed to Date objects before transforms run, so a filter like datum.MONTH < '2026-10-01' drops every row; if you must, compare with time(datum.MONTH) < time('2026-10-01').",
   ],
   examples: [

@@ -10,6 +10,7 @@ export const TOOL_LABEL: Record<string, string> = {
   voltra_search: "Cortex Search",
   growth_analyst_agent: "Cortex Agent",
   release_impact: "Release Impact",
+  forecast_metric: "Forecast",
 };
 export const toolLabel = (t: string) => TOOL_LABEL[t] ?? t.replace(/_/g, " ");
 const TOOL_SUB: Record<string, string> = {
@@ -19,6 +20,7 @@ const TOOL_SUB: Record<string, string> = {
   voltra_search: "text index",
   survey_search: "text index",
   release_impact: "diff-in-diff",
+  forecast_metric: "snowflake ml",
   growth_analyst_agent: "agent",
 };
 
@@ -68,8 +70,9 @@ export function AgentFlow({
   compact?: boolean;
 }) {
   const n = Math.max(tools.length, 1);
-  const span = Math.min(620, 150 * n + 40 * (n - 1));
-  const xs = tools.map((_, i) => (n === 1 ? W / 2 : W / 2 - span / 2 + 75 + (i * (span - 150)) / (n - 1)));
+  const BW = Math.min(150, (W - 90) / n - 12); // tool box width shrinks as tools are added
+  const span = Math.min(W - 90, BW * n + 24 * (n - 1));
+  const xs = tools.map((_, i) => (n === 1 ? W / 2 : W / 2 - span / 2 + BW / 2 + (i * (span - BW)) / (n - 1)));
   const calls = Object.values(counts).reduce((a, b) => a + b, 0);
   const toCore = (x: number) => `M${CORE.x} ${CORE.y - CORE.h / 2} V${BUS_Y} H${x} V${TOOL_Y + 22}`;
   const toWarehouse = (x: number) => {
@@ -104,15 +107,15 @@ export function AgentFlow({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35 + i * 0.08, type: "spring", stiffness: 260, damping: 22 }}
             >
-              <rect x={xs[i] - 75} y={TOOL_Y - 22} width={150} height={44} />
-              <Ticks x={xs[i]} y={TOOL_Y} w={158} h={52} />
-              <text x={xs[i] - 64} y={TOOL_Y - 3} className="sch-label">
+              <rect x={xs[i] - BW / 2} y={TOOL_Y - 22} width={BW} height={44} />
+              <Ticks x={xs[i]} y={TOOL_Y} w={BW + 8} h={52} />
+              <text x={xs[i] - BW / 2 + 10} y={TOOL_Y - 3} className="sch-label">
                 {toolLabel(t)}
               </text>
-              <text x={xs[i] - 64} y={TOOL_Y + 12} className="sch-sub">
+              <text x={xs[i] - BW / 2 + 10} y={TOOL_Y + 12} className="sch-sub">
                 {TOOL_SUB[t] ?? "mcp tool"}
               </text>
-              <text x={xs[i] + 64} y={TOOL_Y + 5} textAnchor="end" className="sch-count">
+              <text x={xs[i] + BW / 2 - 8} y={TOOL_Y - 3} textAnchor="end" className="sch-count">
                 {used ? `×${counts[t]}` : "—"}
               </text>
             </motion.g>
