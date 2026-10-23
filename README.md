@@ -14,7 +14,15 @@
 ![Anatomy](https://img.shields.io/badge/Figures-Anatomy-16150f?style=flat-square)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-[**▶ Watch the 60-second demo**](docs/video/sherlock-demo-60s.mp4) · [How it works](#how-it-works) · [Quickstart](#quickstart) · [Sample cases](#sample-cases)
+[**▶ Watch the demo on YouTube**](https://www.youtube.com/watch?v=fuyP6k-V_dQ) · [How it works](#how-it-works) · [Quickstart](#quickstart) · [Sample cases](#sample-cases)
+
+<a href="https://www.youtube.com/watch?v=fuyP6k-V_dQ" title="Watch the Sherlock demo on YouTube">
+  <img src="https://img.youtube.com/vi/fuyP6k-V_dQ/maxresdefault.jpg" alt="Sherlock demo video: click to watch on YouTube" width="100%" />
+</a>
+
+<sub>▶ <a href="https://www.youtube.com/watch?v=fuyP6k-V_dQ">Watch the demo on YouTube</a> · <a href="docs/video/sherlock-demo-60s.mp4">download the 60-second cut</a></sub>
+
+<br /><br />
 
 <img src="docs/images/demo.gif" alt="Sherlock filing a report: the CAUSE stamp lands on caliper Rev C and the brake caliper lights up on the Anatomy bench" width="100%" />
 
