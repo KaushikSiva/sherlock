@@ -1,0 +1,38 @@
+/* Voltra bench: the kit's light theme re-inked for the paper report, scoped to the figure. */
+.vb-wrap.iso[data-theme="light"] {
+  --anatomy-card: #fbfaf6;
+  --anatomy-paper: #fbfaf6;
+  --anatomy-face: #ffffff;
+  --anatomy-top: #ffffff;
+  --anatomy-shade-0: #d9d5ca;
+  --anatomy-shade-1: #e3e0d6;
+  --anatomy-shade-2: #ebe8df;
+  --anatomy-shade-3: #f3f1ea;
+  --anatomy-lit-top: #fff1ea;
+  --anatomy-lit-shade: #f6dccf;
+  --anatomy-hi: #16150f;
+  --anatomy-mid: #85837a;
+  --anatomy-lo: #b5b2a7;
+  --anatomy-faint: #d6d3c9;
+  --anatomy-lit: #ff4f1a;
+  --anatomy-halo: #8a8576;
+  --anatomy-halo-opacity: 0.28;
+  --anatomy-dot: #3f3d35;
+  --anatomy-text: #3f3d35;
+  --anatomy-muted: #85837a;
+  --anatomy-strong: #16150f;
+  --anatomy-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+.vb-wrap .iso-figure { margin: 0; }
+.vb-wrap .iso-plate { padding: 46px 18px 40px; border-radius: 0; box-shadow: 0 0 0 1px rgba(22, 21, 15, 0.22); }
+.vb-wrap .iso-plate::before, .vb-wrap .iso-plate::after { content: ""; position: absolute; width: 10px; height: 10px; border: solid #16150f; z-index: 1; }
+.vb-wrap .iso-plate::before { top: -1px; left: -1px; border-width: 1.5px 0 0 1.5px; }
+.vb-wrap .iso-plate::after { bottom: -1px; right: -1px; border-width: 0 1.5px 1.5px 0; }
+.vb-wrap .iso-legend { font-size: 12.5px; color: #3f3d35; }
+.vb-wrap .iso-caption { font-family: "Instrument Serif", serif; font-style: italic; font-size: 16px; line-height: 1.35; }
+.vb-wrap .iso-caption strong { color: #16150f; font-weight: 400; font-style: normal; }
+.vb { cursor: ew-resize; touch-action: pan-y; -webkit-tap-highlight-color: transparent; user-select: none; }
+.vb:focus-visible { outline: 1px solid #16150f; outline-offset: 6px; }
+.vb .iso-svg { overflow: visible; max-height: 460px; }
+.vb-needle { stroke-width: 1.4; }
+@media (max-width: 640px) { .vb-wrap .iso-plate .vb .iso-svg { width: 116%; margin: -3% -8%; } }

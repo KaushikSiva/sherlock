@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Sherlock · intro</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* 1920x1080 intro for the demo video. Timeline: hero 0–7s · why 7–17s · architecture 17–27s. */
+  :root { --paper:#f3f1ea; --sheet:#fbfaf6; --ink:#16150f; --ink2:#3f3d35; --muted:#85837a; --faint:#b5b2a7; --hair:rgba(22,21,15,.22); --signal:#ff4f1a; --sig2:#c73a0d; --steel:#2f5bd3;
+          --serif:"Instrument Serif",serif; --sans:"IBM Plex Sans",sans-serif; --mono:"IBM Plex Mono",monospace; --e:cubic-bezier(.22,1,.36,1); }
+  * { box-sizing:border-box; margin:0; }
+  html, body { width:1920px; height:1080px; overflow:hidden; background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+  .grid { position:absolute; inset:0; background-image:linear-gradient(rgba(22,21,15,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(22,21,15,.05) 1px,transparent 1px); background-size:96px 96px; }
+  .scene { position:absolute; inset:0; padding:110px 140px; opacity:0; pointer-events:none; }
+  .scene.on { opacity:1; }
+  .scene.off { opacity:0; transition:opacity .5s var(--e); }
+  .eyebrow { font:500 20px var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--ink2); display:flex; gap:14px; align-items:center; }
+  .dot { width:12px; height:12px; background:var(--signal); }
+  .rise { opacity:0; transform:translateY(40px); }
+  .on .rise { animation:rise 1s var(--e) forwards; }
+  @keyframes rise { to { opacity:1; transform:none; } }
+  .mask { display:inline-block; overflow:hidden; vertical-align:top; padding-bottom:.08em; }
+  .mask > span { display:inline-block; transform:translateY(110%); }
+  .on .mask > span { animation:up 1s var(--e) forwards; }
+  @keyframes up { to { transform:none; } }
+  .draw { stroke-dasharray:1; stroke-dashoffset:1; }
+  .on .draw { animation:draw 1.2s var(--e) forwards; }
+  @keyframes draw { to { stroke-dashoffset:0; } }
+  .bar { position:absolute; left:140px; right:140px; bottom:84px; display:flex; justify-content:space-between; font:500 18px var(--mono); letter-spacing:.12em; color:var(--muted); border-top:1.5px solid var(--ink); padding-top:18px; }
+
+  /* hero */
+  .logo { width:150px; height:150px; background:var(--ink); display:grid; place-items:center; margin-bottom:40px; }
+  .logo svg { width:104px; height:104px; fill:none; stroke:var(--signal); stroke-width:7; stroke-linecap:round; }
+  .hero h1 { font:400 300px/0.86 var(--serif); letter-spacing:-.04em; }
+  .hero h1 em { color:var(--signal); }
+  .hero .tag { font:400 64px/1.1 var(--serif); font-style:italic; color:var(--ink2); margin-top:30px; max-width:1300px; }
+  .hero .stack { position:absolute; right:140px; top:150px; display:flex; flex-direction:column; gap:14px; align-items:flex-end; }
+  .chip { font:500 22px var(--mono); letter-spacing:.06em; padding:12px 20px; border:1.5px solid var(--ink); background:var(--sheet); box-shadow:6px 6px 0 var(--ink); }
+  .chip.o { box-shadow:6px 6px 0 var(--signal); }
+
+  /* why */
+  .why h2 { font:400 120px/0.95 var(--serif); letter-spacing:-.03em; margin:22px 0 40px; max-width:1500px; }
+  .why h2 em { color:var(--signal); }
+  .suspects { display:grid; grid-template-columns:repeat(4,1fr); border-top:2px solid var(--ink); }
+  .suspect { padding:26px 26px 30px 0; border-right:1px solid var(--hair); position:relative; }
+  .suspect:last-child { border-right:0; }
+  .suspect + .suspect { padding-left:26px; }
+  .suspect .k { font:600 18px var(--mono); letter-spacing:.14em; color:var(--sig2); }
+  .suspect .v { font:400 44px/1.05 var(--serif); margin-top:10px; }
+  .suspect .d { font:400 20px var(--mono); color:var(--muted); margin-top:12px; }
+  .q { position:absolute; right:26px; top:22px; width:44px; height:44px; border:2px solid var(--ink); display:grid; place-items:center; font:600 26px var(--mono); }
+  .verdict-line { margin-top:40px; font:400 52px/1.12 var(--serif); }
+  .verdict-line em { color:var(--signal); }
+  .systems { display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; max-width:1640px; }
+  .sys { font:500 18px var(--mono); padding:8px 13px; border:1.5px solid var(--hair); background:var(--sheet); opacity:0; transform:scale(.9); }
+  .on .sys { animation:pop .5s var(--e) forwards; }
+  @keyframes pop { to { opacity:1; transform:none; } }
+
+  /* architecture */
+  .arch h2 { font:400 112px/0.95 var(--serif); letter-spacing:-.03em; margin:22px 0 40px; }
+  .arch h2 em { color:var(--signal); }
+  .arch svg.diagram { width:1640px; height:600px; overflow:visible; }
+  .box rect { fill:var(--sheet); stroke:var(--ink); stroke-width:2; }
+  .box.dark rect { fill:var(--ink); }
+  .box.dark text, .box.dark text.t { fill:var(--paper); }
+  .box.hot rect { stroke:var(--signal); stroke-width:3; }
+  .box text.t { font:600 30px var(--sans); fill:var(--ink); }
+  .box text.s { font:400 17.5px var(--mono); fill:var(--muted); letter-spacing:.02em; }
+  .box.dark text.s { fill:#a8a59a; }
+  .wire { fill:none; stroke:var(--ink); stroke-width:2.5; }
+  .wire.hot { stroke:var(--signal); stroke-width:3.5; }
+  .packet { fill:var(--signal); }
+  .stage { opacity:0; transform:translateY(24px); }
+  .on .stage { animation:rise .8s var(--e) forwards; }
+  .tick { font:500 17px var(--mono); fill:var(--sig2); letter-spacing:.12em; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+
+<!-- 1 · HERO -->
+<section class="scene hero" id="s1">
+  <div class="logo rise" style="animation-delay:.1s"><svg viewBox="0 0 104 104"><circle class="draw" pathLength="1" cx="44" cy="44" r="26" style="animation-delay:.4s"/><path class="draw" pathLength="1" d="M63 63l26 26" style="animation-delay:1s"/></svg></div>
+  <div class="eyebrow rise" style="animation-delay:.3s"><span class="dot"></span>Release forensics · Claude on Snowflake</div>
+  <h1><span class="mask"><span style="animation-delay:.45s">Sher</span></span><span class="mask"><span style="animation-delay:.55s"><em>lock</em></span></span></h1>
+  <p class="tag rise" style="animation-delay:1.3s">The AI analyst that finds which release actually moved your numbers.</p>
+  <div class="stack">
+    <span class="chip rise" style="animation-delay:1.9s">CLAUDE OPUS 5.5</span>
+    <span class="chip rise" style="animation-delay:2.1s">SNOWFLAKE CORTEX</span>
+    <span class="chip rise" style="animation-delay:2.3s">MANAGED MCP</span>
+    <span class="chip o rise" style="animation-delay:2.5s">GENERATIVE UI</span>
+  </div>
+  <div class="bar rise" style="animation-delay:2.8s"><span>CASE FILE · VOLTRA MOBILITY</span><span>FIG. 01 · HERO</span></div>
+</section>
+
+<!-- 2 · WHY -->
+<section class="scene why" id="s2">
+  <div class="eyebrow rise" style="animation-delay:.1s"><span class="dot"></span>The problem</div>
+  <h2><span class="mask"><span style="animation-delay:.2s">Every metric change</span></span> <span class="mask"><span style="animation-delay:.32s">has a dozen <em>suspects.</em></span></span></h2>
+  <div class="suspects">
+    <div class="suspect rise" style="animation-delay:1s"><span class="q">?</span><div class="k">HARDWARE</div><div class="v">Brake caliper Rev C</div><div class="d">May 04 · supplier change</div></div>
+    <div class="suspect rise" style="animation-delay:1.2s"><span class="q">?</span><div class="k">FIRMWARE</div><div class="v">FW 4.3 regen tuning</div><div class="d">May 04 · staged OTA</div></div>
+    <div class="suspect rise" style="animation-delay:1.4s"><span class="q">?</span><div class="k">WEATHER</div><div class="v">Spring rain</div><div class="d">May · rainy regions</div></div>
+    <div class="suspect rise" style="animation-delay:1.6s"><span class="q">?</span><div class="k">SOFTWARE</div><div class="v">App 5.1 · Backend</div><div class="d">same window</div></div>
+  </div>
+  <p class="verdict-line rise" style="animation-delay:3.2s">Dashboards show <em>what</em> changed. Nobody can say <em>why</em>. The evidence is spread across 13 systems.</p>
+  <div class="systems">
+    <span class="sys" style="animation-delay:5.0s">POSTGRES</span><span class="sys" style="animation-delay:5.1s">KAFKA · IoT</span><span class="sys" style="animation-delay:5.2s">OTA FIRMWARE</span><span class="sys" style="animation-delay:5.3s">LAUNCHDARKLY</span><span class="sys" style="animation-delay:5.4s">GITHUB</span><span class="sys" style="animation-delay:5.5s">PAGERDUTY</span><span class="sys" style="animation-delay:5.6s">MES / PLM</span><span class="sys" style="animation-delay:5.7s">WARRANTY</span><span class="sys" style="animation-delay:5.8s">ZENDESK</span><span class="sys" style="animation-delay:5.9s">APP STORE</span><span class="sys" style="animation-delay:6.0s">SHOPIFY</span><span class="sys" style="animation-delay:6.1s">STRIPE</span><span class="sys" style="animation-delay:6.2s">AMPLITUDE</span>
+  </div>
+  <div class="bar rise" style="animation-delay:1s"><span>CASE FILE · VOLTRA MOBILITY</span><span>FIG. 02 · WHY</span></div>
+</section>
+
+<!-- 3 · ARCHITECTURE -->
+<section class="scene arch" id="s3">
+  <div class="eyebrow rise" style="animation-delay:.1s"><span class="dot"></span>How it works</div>
+  <h2><span class="mask"><span style="animation-delay:.2s">Everything runs <em>inside Snowflake.</em></span></span></h2>
+  <svg class="diagram" viewBox="0 0 1640 600">
+    <!-- packets ride the wires behind the boxes -->
+    <g class="stage" style="animation-delay:3.4s">
+      <rect class="packet" x="-7" y="-7" width="14" height="14"><animateMotion dur="2.4s" repeatCount="indefinite" begin="3.4s" path="M280 300 H1410"/></rect>
+      <rect class="packet" x="-7" y="-7" width="14" height="14"><animateMotion dur="2.4s" repeatCount="indefinite" begin="4.2s" path="M280 300 H1410"/></rect>
+      <rect class="packet" x="-7" y="-7" width="14" height="14"><animateMotion dur="2.4s" repeatCount="indefinite" begin="5s" path="M280 300 H1410"/></rect>
+    </g>
+    <g class="stage" style="animation-delay:.7s">
+      <g class="box"><rect x="0" y="40" width="280" height="520"/><text class="t" x="22" y="88">13 sources</text>
+        <text class="s" x="22" y="130">Postgres · CDC</text><text class="s" x="22" y="166">Kafka · telemetry</text><text class="s" x="22" y="202">OTA · feature flags</text><text class="s" x="22" y="238">GitHub · PagerDuty</text><text class="s" x="22" y="274">MES · warranty</text><text class="s" x="22" y="310">Zendesk · reviews</text><text class="s" x="22" y="346">Shopify · Stripe</text><text class="s" x="22" y="382">Amplitude · ads</text><text class="s" x="22" y="418">Weather (Marketplace)</text><text class="tick" x="22" y="520">OPENFLOW · SNOWPIPE</text></g>
+    </g>
+    <path class="wire draw" pathLength="1" d="M280 300 H330" style="animation-delay:1.2s"/>
+    <g class="stage" style="animation-delay:1.3s">
+      <g class="box"><rect x="330" y="150" width="340" height="300"/><text class="t" x="352" y="200">Snowflake</text><text class="s" x="352" y="240">VOLTRA.CORE · 18 tables</text><text class="s" x="352" y="276">550k telemetry rows</text><text class="s" x="352" y="312">semantic view</text><text class="s" x="352" y="348">text search index</text><text class="s" x="352" y="384">RELEASE_IMPACT proc</text></g>
+    </g>
+    <path class="wire draw" pathLength="1" d="M670 300 H720" style="animation-delay:1.8s"/>
+    <g class="stage" style="animation-delay:1.9s">
+      <g class="box hot"><rect x="720" y="110" width="330" height="380"/><text class="t" x="742" y="160">Managed MCP</text><text class="s" x="742" y="196">one governed server</text></g>
+      <g class="box"><rect x="742" y="222" width="286" height="54"/><text class="s" x="758" y="256" style="fill:#16150f">sql_exec</text></g>
+      <g class="box"><rect x="742" y="286" width="286" height="54"/><text class="s" x="758" y="320" style="fill:#16150f">cortex analyst</text></g>
+      <g class="box"><rect x="742" y="350" width="286" height="54"/><text class="s" x="758" y="384" style="fill:#16150f">cortex search</text></g>
+      <g class="box hot"><rect x="742" y="414" width="286" height="54"/><text class="s" x="758" y="448" style="fill:#c73a0d">release_impact · DiD</text></g>
+    </g>
+    <path class="wire hot draw" pathLength="1" d="M1050 300 H1100" style="animation-delay:2.4s"/>
+    <g class="stage" style="animation-delay:2.5s">
+      <g class="box dark"><rect x="1100" y="190" width="270" height="220"/><text class="t" x="1122" y="244">Claude</text><text class="t" x="1122" y="282">Opus 5.5</text><text class="s" x="1122" y="328">via Snowflake Cortex</text><text class="s" x="1122" y="362">tools · thinking</text></g>
+    </g>
+    <path class="wire draw" pathLength="1" d="M1370 300 H1410" style="animation-delay:3s"/>
+    <g class="stage" style="animation-delay:3.1s">
+      <g class="box"><rect x="1410" y="120" width="230" height="360"/><text class="t" x="1430" y="170">Report</text><text class="s" x="1430" y="206">OpenUI stream</text><text class="s" x="1430" y="242">verdicts + CIs</text><text class="s" x="1430" y="278">Anatomy figure</text><text class="s" x="1430" y="314">charts, quotes</text><text class="tick" x="1430" y="446">LIVE</text></g>
+    </g>
+  </svg>
+  <div class="bar rise" style="animation-delay:1s"><span>NO DATA LEAVES SNOWFLAKE · ONE LOGIN FOR CLAUDE, MCP AND DATA</span><span>FIG. 03 · ARCHITECTURE</span></div>
+</section>
+
+<script>
+  // Timeline driven by the page clock so a recorder gets identical timing every run.
+  const scenes = [["s1", 0], ["s2", 7000], ["s3", 17000]];
+  function start() {
+    scenes.forEach(([id, at], i) => setTimeout(() => {
+      if (i) { const prev = document.getElementById(scenes[i - 1][0]); prev.classList.remove("on"); prev.classList.add("off"); }
+      document.getElementById(id).classList.add("on");
+    }, at));
+  }
+  // Wait for fonts so the first frame is final typography; the recorder calls window.go().
+  window.go = () => document.fonts.ready.then(start);
+  if (!location.search.includes("manual")) window.go();
+</script>
+</body>
+</html>

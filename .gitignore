@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+runs/
+web/node_modules/
+web/dist/
+data/voltra/out/
+vendor/
+evals/results/
+.DS_Store
+demo/build/

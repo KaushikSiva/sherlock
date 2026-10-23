@@ -1,0 +1,156 @@
+# Ground truth for the Voltra synthetic dataset (data/voltra/generate.py, SEED 20261023).
+# Effects below are what VOLTRA.CORE.RELEASE_IMPACT measures on the loaded data (not just the generator's knobs).
+# A grader should check: (1) the true cause is named, (2) every decoy is ruled out, (3) the effect is in range.
+
+dataset: voltra
+as_of: 2026-10-23
+
+questions:
+  - id: battery_claims
+    question: "Why did battery warranty claims fall after last summer?"
+    alt_phrasings:
+      - "What caused the drop in battery warranty costs in Q4 2025?"
+      - "Did FW 4.2 actually reduce battery failures?"
+    true_cause: [FW-4.2]
+    decoys:
+      - id: autumn_cooling
+        why_wrong: "Weather cooled the same weeks (naive battery claims 6.29 -> 2.16 per 1k bike-weeks, Jul-Aug vs Oct-Nov 2025), but early FW 4.2 installers diverge from the 20% holdback over the same weeks and weather."
+      - id: HW-CELL-ARC
+        why_wrong: "Second cell supplier added Jul 2025; no effect."
+    expected_effects:
+      - metric: warranty_claims:battery
+        method: "staged rollout, early installers (stages 1-2) vs holdback, post-only (randomized buckets), window 14w"
+        effect: -1.61        # claims per 1k bike-weeks
+        relative: -0.60
+        acceptable_relative_range: [-0.75, -0.35]
+        ci95: [-2.66, -0.57]
+      - metric: battery_temp_p95
+        effect: -6.05        # deg C, diff-in-diff, window 6w
+        acceptable_range: [-7.5, -4.5]
+      - metric: range_km
+        effect: 4.75         # km per charge
+        relative: 0.07
+        acceptable_relative_range: [0.04, 0.10]
+      - metric: overheat_errors
+        relative: -0.74      # per 1k rides, diff-in-diff, window 3w
+        acceptable_relative_range: [-0.85, -0.50]
+    key_evidence:
+      - "FIRMWARE_INSTALLS: 10% / 50% / 80% staged on Sep 8 / 15 / 29 2025; 20% holdback stays on 4.1.2 until 4.2.3 (Jan 19 2026)."
+      - "Battery warranty cost Q3 2025 $176k -> Q4 2025 $70k; Q3 2026 $174k on roughly twice the fleet (per-bike cost about halved)."
+
+  - id: app_redesign_sales
+    question: "Did the app 5.0 checkout redesign lift sales?"
+    alt_phrasings:
+      - "Why did orders jump in March and April 2026?"
+    true_cause: ["Spring Into Motion"]
+    decoys:
+      - id: APP-5.0
+        why_wrong: "Randomized 50/50 flag new_checkout: conversion 1.306% vs 1.287% (effect +0.02 pts, CI -0.14..+0.17 pts); checkout rate neutral overall, Android -1.6 pts (n.s.)."
+    expected_effects:
+      - metric: conversion
+        change_id: new_checkout
+        effect: 0.00019
+        ci95: [-0.00135, 0.00172]
+        verdict: "no effect"
+      - metric: orders_per_day
+        note: "Consumer orders/day 16.8 (6w pre) -> 25.9 during the campaign (+54% naive). Same weeks in 2025 rose 14.2 -> 16.8 (+18% seasonality), so the campaign accounts for roughly +25-35%."
+        acceptable_campaign_lift_range: [0.15, 0.45]
+    key_evidence:
+      - "MARKETING_SPEND: 'Spring Into Motion' Mar 16 - Apr 26 2026 adds Meta and YouTube spend; Meta sessions 241 -> 543/day, YouTube 82 -> 217/day."
+
+  - id: brake_complaints
+    question: "Why are brake complaints up?"
+    alt_phrasings:
+      - "Did FW 4.3 regen braking tuning cause the brake noise tickets?"
+      - "Why did support CSAT drop this summer?"
+    true_cause: [HW-CALIPER-C]
+    decoys:
+      - id: FW-4.3
+        why_wrong: "Shipped the same day (May 4 2026). Bikes built before May 4 (all caliper B) got 4.3 and show no significant change in brake-noise tickets (ITS +0.38 per 1k bike-weeks, CI -0.20..+0.95)."
+      - id: summer_riding
+        why_wrong: "Total brake-noise tickets rise every summer with ride volume (47/month Jan -> 132/month Aug-Sep 2026), but the per-bike rate gap is between caliper revisions in the same weeks."
+    expected_effects:
+      - metric: tickets:brake_noise
+        effect: 3.11         # per 1k bike-weeks, rev C vs rev B, same calendar weeks
+        relative: 1.59       # i.e. ~2.6x
+        acceptable_relative_range: [1.0, 2.5]
+        ci95: [2.17, 4.04]
+      - metric: warranty_claims:brakes
+        relative: 1.00       # ~2x
+        acceptable_relative_range: [0.4, 2.0]
+      - metric: csat_brake_noise
+        values: {C: 2.57, B: 3.98}
+    key_evidence:
+      - "HARDWARE_REVISIONS: HW-CALIPER-C second-source caliper (Duraforge Components) for builds from May 4 2026."
+      - "Brake-noise CSAT 2.57 on rev C bikes vs 3.98 on rev B."
+
+  - id: care_churn_spike
+    question: "Why did Voltra Care cancellations spike in mid-August 2026?"
+    alt_phrasings:
+      - "Did app 5.2 cause the Care churn spike?"
+    true_cause: [INC-217]
+    decoys:
+      - id: APP-5.2
+        why_wrong: "Released the same day as the outage; no flag or rollout cohort, and the spike is confined to riders who logged UNLOCK_TIMEOUT during the outage."
+      - id: BE-2026.08.1
+        why_wrong: "The connection-pool change is the outage's root cause per the postmortem, not an independent driver; the customer-facing cause is the outage."
+    expected_effects:
+      - metric: care_cancellations
+        change_id: INC-217
+        window_weeks: 2
+        effect: 0.093        # +9.3 pts 14-day cancellation rate, affected vs unaffected (diff-in-diff)
+        relative: 6.7        # ~7-11x
+        acceptable_effect_range: [0.06, 0.13]
+        values: {affected_14d: 0.106, unaffected_14d: 0.015}
+    key_evidence:
+      - "Weekly Care cancellations 16 -> 114 (week of Aug 10) -> 91 -> 21."
+      - "INC-217 SEV1 unlock-service us-west, Aug 12 2026 09:02-18:05; Seattle, San Francisco, Portland."
+
+  - id: hill_assist
+    question: "Did Hill Assist work?"
+    alt_phrasings:
+      - "Should we turn Hill Assist on for everyone?"
+      - "Does Hill Assist increase riding?"
+    true_cause: [FW-4.2.3, hill_assist]
+    heterogeneity: "Effect only in hilly regions (Seattle, San Francisco, Denver); ~0 in flat regions."
+    decoys:
+      - id: overall_average
+        why_wrong: "Fleet-wide average effect is small and not significant (+0.34 rides/wk, CI -0.02..+0.70); the effect is concentrated in hilly regions."
+    expected_effects:
+      - metric: rides
+        segment: hilly
+        effect: 0.65         # rides per bike-week, window 8w
+        relative: 0.115
+        acceptable_relative_range: [0.06, 0.18]
+      - metric: rides
+        segment: flat
+        effect: 0.02
+        verdict: "no effect"
+      - metric: care_cancellations
+        segment: hilly
+        window_weeks: 26
+        effect: -0.062       # post-only (randomized flag), 6-month cancellation share
+        acceptable_effect_range: [-0.11, -0.02]
+      - metric: care_cancellations
+        segment: flat
+        verdict: "no effect"
+
+  - id: motor_m2
+    question: "Is the cheaper M2 motor safe to keep?"
+    alt_phrasings:
+      - "Did motor revision M2 hurt reliability?"
+    true_cause: []
+    expected_answer: "Yes, keep it: no detectable change in motor warranty claims (M2 vs M1 same weeks: -0.10 per 1k bike-weeks, CI -0.27..+0.06) while saving $18 BOM per bike."
+    expected_effects:
+      - metric: warranty_claims:motor
+        change_id: HW-MOTOR-M2
+        effect: -0.10
+        ci95: [-0.27, 0.06]
+        verdict: "no effect"
+
+ids:
+  releases: [FW-4.0, APP-4.8, BE-2025.03, FW-4.1, FW-4.1.2, APP-4.9, BE-2025.08, FW-4.2, WEB-2025.10, BE-2025.11, FW-4.2.3, BE-2026.02, APP-5.0, FW-4.3, APP-5.1, BE-2026.06, BE-2026.08.1, APP-5.2, FW-4.4, APP-5.3]
+  hardware_revisions: [HW-CALIPER-B, HW-CALIPER-C, HW-MOTOR-M1, HW-MOTOR-M2, HW-CELL-ARC, HW-FRAME-F2]
+  incidents: [INC-142, INC-171, INC-188, INC-203, INC-217, INC-224]
+  flags: [fw_4_2_rollout, hill_assist, new_checkout, fw_4_3_rollout]
+  campaigns: ["Black Friday 2025", "Spring Into Motion", "Summer Commute 2025"]
