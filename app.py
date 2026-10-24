@@ -1,5 +1,6 @@
 """FastAPI server: streams agent progress to the browser over Server-Sent Events."""
 import json
+import logging
 import uuid
 
 from pathlib import Path
@@ -61,6 +62,7 @@ def ask(req: Ask):
             for event in session.ask(req.question):
                 yield f"data: {json.dumps(event, default=str)}\n\n"
         except Exception as e:
+            logging.getLogger("sherlock").exception("ask failed: %s", req.question)
             del session.messages[checkpoint:]  # drop the failed turn so the conversation stays valid
             yield f"data: {json.dumps({'type': 'error', 'text': f'{type(e).__name__}: {e}'[:600]})}\n\n"
 
